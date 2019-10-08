@@ -1,7 +1,11 @@
 //Token en cabecera
 //https://medium.com/@asfo/autenticando-un-api-rest-con-nodejs-y-jwt-json-web-tokens-5f3674aba50e
 //https://www.oscarblancarteblog.com/2017/06/08/autenticacion-con-json-web-tokens/
+//https://trevorsullivan.net/2017/03/11/change-vscode-integrated-terminal-powershell/
+//http://mongodb.github.io/node-mongodb-native/3.2/tutorials/crud/
+//https://www.openmymind.net/2012/2/3/Node-Require-and-Exports/
 
+//import * as express from 'express';
 const express = require('express');
 const morgan = require('morgan');
 const routes = require('./routes');
@@ -10,7 +14,6 @@ const app = express();
 const key = require('./config');
 // const mongoClient = require('mongodb').MongoClient;
 // const assert = require('assert');
-
 
 // Configuration
 app.set('port',3000);

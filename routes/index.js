@@ -6,17 +6,10 @@ const express = require('express'),
                   {"nombre":"Andres","apellido":"Salinero","edad":58,"password":"pepe2"}],
       jwt =require('jsonwebtoken');
       key = require('../config');
-      mongoClient = require('mongodb').MongoClient;
       assert = require('assert');
+      DATABASE = require('../database');       
 
 
-// Connection Database
-
-const URL = 'mongodb://localhost:27017';
-const DATABASE = 'primer_db';
-const client = new mongoClient(URL);
-  
-      
 
 rutas.post('/user/listusers',(req,res,next)=>{
 
@@ -62,88 +55,6 @@ rutas.get('/user/:username',(req,res,next)=>{
 
 //add
 
-rutas.post('/user/add',(req,res,next)=>{
-
-    const {nombre,apellido,edad,password} = req.body;
-    var usuario = {nombre:nombre,apellido:apellido,edad:edad,password:password};    
-    var resultado = "bla";
-    
-      
-    //Connection to server
-    client.connect((error,result)=>{
-
-        try {
-
-            assert.equal(null,error);
-
-            console.log("Connection established");
-            
-            //Connection to Databese
-            const db = client.db(DATABASE);
-            const keyFind = {
-                nombre:nombre
-            };
-
-            console.log(keyFind);
-            
-            ()=>{}                  
-            db.collection('user').find(keyFind).limit(2).toArray((err,doc)=>{
-                
-                console.log("en el find");
-            
-                try{
-                    
-                    assert.equal(null, err);
-                    assert.equal(0, doc.length);    
-
-                    db.collection('user').insertOne(usuario,(error,result)=>{
-
-                        try {
-                                                       
-                            assert.equal(null,error);
-                            assert.equal(1,result.insertedCount);
-                            resultado = "Added User";
-                            console.log("Registro Insertado");
-                            client.close();
-                            res.send({message:"User Inserted"})                    
-                            
-                
-                        } catch (error) {
-                            
-                            console.log(error);
-                            client.close();
-                            
-                        }
-                
-                    })
-
-                }catch(error){
-                    
-                    console.log("Registro existente");
-                    resultado = "Exist User";
-                    client.close();
-                    res.send({message:"User Exist"}) 
-                                       
-                }
-
-            })
-            
-            console.log("Termino el find");
-
-        } catch (error) {
-            
-            console.log("Connection refused!!");
-
-        }                        
-        
-    })
-    
-    console.log("Termino el connect");
-    //res.send(usuario);
-   next() ;
-   
-})
-
 rutas.post('/token',(req,res,next)=>{
 
     const { username,password} = req.body;
@@ -186,6 +97,117 @@ rutas.get('/users',(req,res,next)=>{
     next() 
    
 })
+
+rutas.post('/user/add',(req,res,next)=>{
+
+    const {nombre,apellido,edad,password} = req.body;
+    var usuario = {nombre:nombre,apellido:apellido,edad:edad,password:password};    
+       
+    // Use connect method to connect to the Server
+    DATABASE.client.connect(function(err, client) {
+        try{
+        
+            assert.equal(null, err);
+            console.log("Connected correctly to server");
+            
+            const db = DATABASE.client.db(DATABASE.DATABASE)
+               
+            db.collection('user').find(usuario).limit(2).toArray(function(err, docs) {
+            
+                try{
+            
+                    assert.equal(null, err);
+                    assert.equal(0, docs.length);
+
+                        // Insert a single document
+                        db.collection('user').insertOne(usuario, function(err, r) {
+                            
+                            try{
+                            
+                                console.log(err);
+                                console.log(r.insertedCount);
+                                assert.equal(null, err);
+                                assert.equal(1, r.insertedCount);
+                                DATABASE.client.close();
+                                res.send({message:"User Inserted"});
+                            
+                            }catch (error){
+                                
+                                DATABASE.client.close();
+                                res.send({message:"Not User Inserted"})
+
+                            }    
+                        });
+                }catch (error) {
+                    
+                    console.log("Registro existente");
+                    DATABASE.client.close();
+                    res.send({message:"User Exist"});
+
+
+                }
+            });    
+        }catch (error) {
+
+            console.log("Connection refused!!!");
+            res.send({message:"Verify the connection"})            
+
+        }       
+
+    },{ useUnifiedTopology: true,useNewUrlParser: true });
+
+
+})
+
+
+rutas.post('/user/listusersdb',(req,res,next)=>{
+
+   
+    const {usuario} = req.body;
+    
+    if (usuario === '*ALL') {
+        
+        DATABASE.client.connect(function(err, client) {
+            
+            try{
+            
+                assert.equal(null, err);
+                console.log("Connected correctly to server");
+                
+                const db = DATABASE.client.db(DATABASE.DATABASE)
+                   
+                db.collection('user').find({}).limit(0).toArray(function(err, docs) {
+                
+                    try{
+                
+                        assert.equal(null, err);
+                        assert.equal(0, docs.length);
+                        res.send({message:"Users not Found"})
+                    
+                    }catch (error){
+
+                        console.log(docs);
+                        
+                        res.send(docs)
+                    
+                    }    
+                });    
+            }catch{
+
+
+            }
+        });    
+                
+        
+    } else {
+            
+        res.send({"error":1,"Descripcion":"Verifique el valor pasado"});
+    }
+    
+    //next() 
+   
+})
+
 
 
 module.exports = rutas;
