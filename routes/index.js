@@ -1,108 +1,98 @@
 const express = require('express'),
       rutas = express.Router(),
       path = require('path'),
-      usuarios = [{"nombre":"Diego","apellido":"Rosellini","edad":41,"password":"pepe"},
-                  {"nombre":"Nico","apellido":"Chialvo","edad":35,"password":"pepe1"},
-                  {"nombre":"Andres","apellido":"Salinero","edad":58,"password":"pepe2"}],
-      jwt =require('jsonwebtoken');
-      key = require('../config');
-      assert = require('assert');
-      DATABASE = require('../database');       
+    //   usuarios = [{"nombre":"Diego","apellido":"Rosellini","edad":41,"password":"pepe"},
+    //               {"nombre":"Nico","apellido":"Chialvo","edad":35,"password":"pepe1"},
+    //               {"nombre":"Andres","apellido":"Salinero","edad":58,"password":"pepe2"}],
+      jwt =require('jsonwebtoken'),
+      key = require('../config'),
+      assert = require('assert'),
+      DATABASE = require('../database'),
+      bcrypt = require('bcrypt');       
 
-
-
-rutas.post('/user/listusers',(req,res,next)=>{
-
-   
-    const {usuario} = req.body;
-    
-    if (usuario === '*ALL') {
-        console.log("Entro por igual");
-        
-        res.send(usuarios);
-
-        }else{
-            
-            res.send({"error":1,"Descripcion":"Verifique el valor pasado"})
-    }
-    
-    next() 
-   
-})
-
-//Find
-rutas.get('/user/:username',(req,res,next)=>{
-
-       
-    var usuario = usuarios.filter((usuario)=>{
-
-        return usuario.nombre === req.params.username;
-
-    })[0];
-
-    if (!usuario) {
-
-        usuario = {'error':1,'descripcion':"Usuario No encontrado"};
-        
-    }
-
-    res.send(usuario);
-        
-    
-    next() ;
-   
-})
-
-//add
-
+//Generate Token
 rutas.post('/token',(req,res,next)=>{
 
     const { username,password} = req.body;
 
-    console.log(username,password);
+    console.log( username,password );
     
-    
-    var usuario = usuarios.filter((usuario)=>{
-
-        return usuario.nombre === username && usuario.password === password
-
-    })[0];
-
-    if (usuario) {
+   
+    DATABASE.client.connect(function(err, client) {
+            
+        try{
         
-        //console.log(JSON.stringify({silvio:"123"}));
-         
-        const token = jwt.sign({usuario:username},key.secretkey,{expiresIn: 60 * 60 * 24});
+            assert.equal(null, err);
+            console.log("Connected correctly to server");
+            
+            const db = DATABASE.client.db(DATABASE.DATABASE)
+               
+            db.collection('user').find({"nombre":username}).limit(1).toArray(function(err, docs) {
+            
+                try{
+                    console.log(docs)
+                    assert.equal(null, err);
+                    assert.equal(1, docs.length);
+                    
+                    // Load hash from your password DB.
+                    bcrypt.compare(password, docs[0].password,(err,resp)=>{
+                         
+                        try {
+                                                
+                            assert.equal(true,resp);
+                            
+                            //Generate Token
+                            const token = jwt.sign({usuario:username},key.secretkey,{expiresIn: 60 * 60 * 24});
+                                               
+                            res.send({'token':token});
+                            
+                            next();
 
-        res.send({'token':token});
+                        } catch (error) {
 
-        // var decoded = jwt.decode(token, {complete: true});
-        // console.log(decoded.header);
-        // console.log(decoded.payload)
-        // console.log(decoded.signature);
-    }else{
+                            res.send({'message':'Verify password entered'})
+                            next();
+                            
+                        }
+                        
+                    });
 
-        res.json({'error':3, 'descripcion':"Usuario o Contraseña incorrecta"});
-    }
+                }catch (error){
+
+                    res.send({message:'Not exist User'});
+                    next();
+                
+                }    
+            });    
+        
+        }catch{
+
+            console.log("Connection refused!!!");
+
+        }
+    })
     
-    next()
+     
+   // next()
    
 })
 
-
-rutas.get('/users',(req,res,next)=>{
-
-    res.send(usuarios);
-
-    next() 
-   
-})
-
+// Add User
 rutas.post('/user/add',(req,res,next)=>{
 
     const {nombre,apellido,edad,password} = req.body;
     var usuario = {nombre:nombre,apellido:apellido,edad:edad,password:password};    
-       
+           
+    //Encrpyt password
+    bcrypt.hash(password, 10, function(err, hash) {
+
+            if (hash) {
+                
+                usuario.password = hash
+                                
+            }
+      });
+    
     // Use connect method to connect to the Server
     DATABASE.client.connect(function(err, client) {
         try{
@@ -159,11 +149,54 @@ rutas.post('/user/add',(req,res,next)=>{
 
 })
 
+//Find Single User
+rutas.get('/user/:username',(req,res,next)=>{
 
-rutas.post('/user/listusersdb',(req,res,next)=>{
+    
+    DATABASE.client.connect(function(err, client) {
+            
+        try{
+        
+            assert.equal(null, err);
+            console.log("Connected correctly to server");
+            
+            const db = DATABASE.client.db(DATABASE.DATABASE)
+               
+            db.collection('user').find({"nombre":req.params.username}).limit(1).toArray(function(err, docs) {
+            
+                try{
+            
+                    assert.equal(null, err);
+                    assert.equal(1, docs.length);
+                    
+                    res.send(docs);
+                    next();
+
+                }catch (error){
+
+                    res.send({message:'Not exist User'});
+                    next();
+                
+                }    
+            });    
+        
+        }catch{
+
+            console.log("Connection refused!!!");
+
+        }
+    })
+   
+})
+
+//List of Users
+rutas.post('/user/listusers',(req,res,next)=>{
 
    
     const {usuario} = req.body;
+
+    console.log(usuario);
+    
     
     if (usuario === '*ALL') {
         
@@ -208,6 +241,64 @@ rutas.post('/user/listusersdb',(req,res,next)=>{
    
 })
 
+rutas.get('/sql',(req,res,next)=>{
 
+       res.render('editor.ejs');
+
+})
+
+rutas.get('/articulo/:largenumber',(req,res,next)=>{
+
+    DATABASE.client.connect(function(err, client) {
+            
+        try{
+        
+            assert.equal(null, err);
+            console.log("Connected correctly to server");
+            
+            const db = DATABASE.client.db(DATABASE.DATABASE)
+               
+            db.collection('articulos').find({"nroArt":req.params.largenumber}).limit(1).toArray(function(err, docs) {
+            
+                try{
+            
+                    assert.equal(null, err);
+                    assert.equal(1, docs.length);
+
+                    console.log(docs);
+                                        
+                    //res.send(docs);
+                    res.render('articulos.ejs',docs[0])
+
+                    next();
+
+                }catch (error){
+
+                    //res.send({message:'Not exist User'});
+                    res.render('articulonocatalogado.ejs')
+                    next();
+                
+                }    
+            });    
+        
+        }catch{
+
+            console.log("Connection refused!!!");
+
+        }
+    })
+
+
+
+   // res.render('articulos.ejs',{ pat: '../../a.jpg' });
+
+})
+
+rutas.get('/articulo',(req,res,next)=>{
+
+    res.render('articulonocatalogado.ejs')
+    next();
+               
+})
 
 module.exports = rutas;

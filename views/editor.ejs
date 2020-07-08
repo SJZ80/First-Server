@@ -1,0 +1,154 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta http-equiv="X-UA-Compatible" content="ie=edge">
+    <title>Document</title>
+    <script src="https://ajax.googleapis.com/ajax/libs/jquery/3.4.1/jquery.min.js"></script>
+    <style>
+        .menuP ul {
+            display: flex;
+            padding: 0;
+            margin: 0;
+            list-style: none;
+	    }
+
+        .menuP a {
+            display: block;
+            padding: 12px;
+            background-color: rgb(214, 206, 206);
+            text-decoration: none;
+            color: #191C26;
+            font-size: 11px;
+            font-family: Arial, Helvetica, sans-serif;
+	    }
+
+        .menuP ul li ul {
+		    display: none;
+            border-style: solid;
+            border-color: black;
+            border-width: 1px;
+        }
+        .menuP ul li a:hover + ul, .menuP ul li ul:hover {
+            display: block;
+            position: absolute;
+        }
+
+        #fast_opt{
+            border-width: 3px;
+            border-color: black;
+        }
+
+        #fast_opt p{
+            display: inline;
+            margin-right: 8px;
+        }
+
+        #fast_opt p:hover,try:hover{
+            background-color: rgb(238, 232, 230);
+        }
+       
+    
+    </style>
+</head>
+<body>
+    <nav class="menuP">
+        <ul>
+            <li><a href="#">Archivo</a>
+                <ul>
+                    <li><a href="#">Guardar</a></li>
+                </ul>
+            </li>
+            <li><a href="#">Edición</a>
+                <ul>
+                    <li><a href="#">Deshacer</a></li>
+                </ul>
+            </li>
+        </ul>
+    </nav>
+    <div id="fast_opt">
+        <p>Ejecutar</p>
+        <p>Ejecu</p>
+        <p><img src="play.png" alt="ejecutar" id="try" style="width:20px;height:20px;"></p>
+    </div>
+    <textarea name="script_text" id="script_area" cols="180" rows="35"></textarea>
+    <script>
+        var quotearea = document.getElementById("script_area");
+        var selectedText = "";
+        quotearea.addEventListener("mouseup", function(){
+            if (this.selectionStart != this.selectionEnd){ // check the user has selected some text inside field
+                selectedText = this.value.substring(this.selectionStart, this.selectionEnd);
+                console.log(selectedText);
+            }
+        }, false)
+        document.getElementById("try").addEventListener("click", function(){ 
+            console.log(selectedText);
+            function createNode(element) {
+                return document.createElement(element);
+            }
+
+            function append(parent, el) {
+                return parent.appendChild(el);
+            }
+            console.log("me ejecute");
+            
+            /*const ul = document.getElementById('authors');
+            const url = 'https://randomuser.me/api/?results=1';
+            fetch(url)
+            .then((resp) => {return resp.json()
+                
+            })
+            .then(function(data) {
+                console.log(data.results);
+                let authors = data.results;
+                return authors.map(function(author) {
+                    let li = createNode('li'),
+                        img = createNode('img'),
+                        span = createNode('span');
+                    img.src = author.picture.medium;
+                    span.innerHTML = `${author.name.first} ${author.name.last}`;
+                    append(li, img);
+                    append(li, span);
+                    append(ul, li);
+                })
+            })
+            .catch(function(error) {
+                console.log(error);
+                console.log(JSON.stringify(error));
+            });*/
+            const url = "http://localhost:3000/v1/user/listusers";
+            // The data we are going to send in our request
+            let data = {
+                    	"usuario":"*ALL"
+
+                        };
+            // The parameters we are gonna pass to the fetch function
+            let fetchData = { 
+                method: 'POST', 
+                body: JSON.stringify(data),
+                headers: {
+                     'Content-Type': 'application/json'
+                     
+                }
+            };
+            console.log('bodyreq',fetchData.body);
+            fetch(url,fetchData)
+            .then(function(resp) {
+                // Handle response you get from the server
+                console.log ("estoy aca");
+                return resp.json();
+
+            })
+            .then(function(data) {
+                console.log(data[0].nombre);  
+            })
+            .catch(function(error) {
+                console.log('aca error');
+                console.log(JSON.stringify(error));
+            });
+        }); 
+    </script>
+    <div id="resultado"></div>
+</body>
+</html>
